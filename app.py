@@ -4,6 +4,8 @@ from elevenlabs import generate, save, set_api_key
 import requests
 import os
 from dotenv import load_dotenv
+from elevenlabs import generate, save, VoiceSettings, set_api_key
+set_api_key(ELEVEN_API_KEY)  # ou sua variável
 
 # Sidebar para inserir chaves
 st.sidebar.title("🔑 Chaves da API")
@@ -32,8 +34,11 @@ def gerar_narracao(roteiro):
     audio = generate(
         text=roteiro,
         voice="Rachel",
-        model="eleven_monolingual_v1",
-        voice="Rachel"
+        model="eleven_monolingual_v1",  # Pode ser removido se der erro
+        settings=VoiceSettings(
+            stability=0.5,
+            similarity_boost=0.8
+        )
     )
     filename = "narracao.mp3"
     save(audio, filename)
