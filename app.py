@@ -35,7 +35,7 @@ def gerar_roteiro(titulo):
 def gerar_narracao(roteiro):
     try:
         voices_list = voices()
-        voice = next((v for v in voices_list if v.name == "Rachel"), None)
+        voice = next((v for v in voices_list if v.name == "Aria"), None)
 
         if voice is None:
             st.error("Voz 'Rachel' não encontrada. Verifique se a API Key do ElevenLabs está correta e ativa.")
