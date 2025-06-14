@@ -1,33 +1,25 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import generate, save, set_api_key, VoiceSettings
-import requests
+from elevenlabs import generate, save, set_api_key
 import os
-from dotenv import load_dotenv
 
-# ⏬ Carregar variáveis do .env (caso existam)
-load_dotenv()
+# ========================
+# Chaves de API (modo seguro via Secrets)
+# ========================
 
-# 🎛️ Campo para inserir chaves manualmente
-st.sidebar.title("🔑 Chaves da API")
-openai_key = st.sidebar.text_input("Chave da OpenAI", type="password")
-eleven_key = st.sidebar.text_input("Chave da ElevenLabs", type="password")
+openai_key = st.secrets["OPENAI_API_KEY"]
+eleven_key = st.secrets["ELEVEN_API_KEY"]
 
-# 📂 Criar arquivo .env (opcional)
-if st.button("Criar arquivo .env"):
-    env_content = f"""
-OPENAI_API_KEY={openai_key or 'sua-chave-openai-aqui'}
-ELEVEN_API_KEY={eleven_key or 'sua-chave-elevenlabs-aqui'}
-"""
-    with open(".env", "w") as f:
-        f.write(env_content.strip())
-    st.success("Arquivo .env criado com sucesso!")
+# ========================
+# Inicializar cliente OpenAI
+# ========================
 
-# ✅ Inicializar clientes com fallback para .env
-client_openai = OpenAI(api_key=openai_key or os.getenv("OPENAI_API_KEY"))
-set_api_key(eleven_key or os.getenv("ELEVEN_API_KEY"))
+client_openai = OpenAI(api_key=openai_key)
 
-# 🧠 Função para gerar roteiro
+# ========================
+# Função para gerar o roteiro com GPT
+# ========================
+
 def gerar_roteiro(titulo):
     prompt = f"Crie um roteiro bíblico completo para um vídeo animado de 8 a 10 minutos com o título: '{titulo}', incluindo cenas visuais, falas e efeitos sonoros."
     resposta = client_openai.chat.completions.create(
@@ -36,69 +28,38 @@ def gerar_roteiro(titulo):
     )
     return resposta.choices[0].message.content
 
-# 🎙️ Função para gerar narração com ElevenLabs
+# ========================
+# Função para gerar a narração com ElevenLabs
+# ========================
+
 def gerar_narracao(roteiro):
+    set_api_key(eleven_key)
     audio = generate(
         text=roteiro,
-        voice="Rachel",
-        model="eleven_monolingual_v1",
-        voice_settings=VoiceSettings(stability=0.5, similarity_boost=0.8)
+        voice="Rachel"
     )
     filename = "narracao.mp3"
     save(audio, filename)
     return filename
 
-# 🖼️ Função para gerar imagens simuladas
-def gerar_animacoes(roteiro):
-    cenas = ["Cena de Josias criança", "Josias destruindo ídolos", "Josias lendo a Lei"]
-    imagens = []
-    for i, cena in enumerate(cenas):
-        image_path = f"imagem{i+1}.png"
-        url = "https://via.placeholder.com/640x360.png?text=" + cena.replace(" ", "+")
-        with open(image_path, "wb") as f:
-            f.write(requests.get(url).content)
-        imagens.append(image_path)
-    return imagens
+# ========================
+# Interface com o usuário
+# ========================
 
-# 🔊 Função para simular efeitos sonoros
-def gerar_sons(roteiro):
-    efeitos = ["efeito_batalha.mp3", "efeito_templo.mp3"]
-    for efeito in efeitos:
-        with open(efeito, "wb") as f:
-            f.write(requests.get("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3").content)
-    return efeitos
+st.title("🎬 Gerador Bíblico com IA")
 
-# 🎬 Função para simular montagem do vídeo
-def montar_video(imagens, narracao, sons):
-    video_path = "video_final.mp4"
-    with open(video_path, "wb") as f:
-        f.write(b"Simulacao de video...")
-    return video_path
+titulo = st.text_input("Digite o título da história bíblica")
 
-# 💻 Interface Streamlit
-st.title("🎬 Gerador de Vídeos Bíblicos por IA")
+if st.button("Gerar Roteiro"):
+    if titulo:
+        with st.spinner("Gerando roteiro..."):
+            roteiro = gerar_roteiro(titulo)
+            st.success("📜 Roteiro gerado!")
+            st.text_area("Roteiro completo:", roteiro, height=400)
 
-titulo = st.text_input("Digite o título da história bíblica:")
-
-if st.button("Gerar Vídeo"):
-    with st.spinner("Gerando roteiro..."):
-        roteiro = gerar_roteiro(titulo)
-        st.success("Roteiro gerado!")
-
-    with st.spinner("Gerando narração..."):
-        narracao = gerar_narracao(roteiro)
-        st.success("Narração gerada!")
-
-    with st.spinner("Gerando animações..."):
-        imagens = gerar_animacoes(roteiro)
-        st.success("Animações geradas!")
-
-    with st.spinner("Gerando efeitos sonoros..."):
-        sons = gerar_sons(roteiro)
-        st.success("Sons gerados!")
-
-    with st.spinner("Montando vídeo final..."):
-        video = montar_video(imagens, narracao, sons)
-        st.success("Vídeo completo!")
-
-    st.video(video)
+            with st.spinner("Gerando narração..."):
+                audio_path = gerar_narracao(roteiro)
+                st.audio(audio_path, format="audio/mp3")
+                st.success("🔊 Narração gerada!")
+    else:
+        st.warning("Por favor, digite um título.")
