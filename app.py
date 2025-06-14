@@ -1,27 +1,33 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import generate, save, set_api_key
+from elevenlabs import generate, save, set_api_key, VoiceSettings
 import requests
 import os
 from dotenv import load_dotenv
-from elevenlabs import generate, save, VoiceSettings, set_api_key
-set_api_key(ELEVEN_API_KEY)  # ou sua variável
 
-# Sidebar para inserir chaves
+# ⏬ Carregar variáveis do .env (caso existam)
+load_dotenv()
+
+# 🎛️ Campo para inserir chaves manualmente
 st.sidebar.title("🔑 Chaves da API")
 openai_key = st.sidebar.text_input("Chave da OpenAI", type="password")
 eleven_key = st.sidebar.text_input("Chave da ElevenLabs", type="password")
 
-if st.sidebar.button("Salvar chaves"):
+# 📂 Criar arquivo .env (opcional)
+if st.button("Criar arquivo .env"):
+    env_content = f"""
+OPENAI_API_KEY={openai_key or 'sua-chave-openai-aqui'}
+ELEVEN_API_KEY={eleven_key or 'sua-chave-elevenlabs-aqui'}
+"""
     with open(".env", "w") as f:
-        f.write(f"OPENAI_API_KEY={openai_key}\nELEVEN_API_KEY={eleven_key}")
-    st.sidebar.success("Chaves salvas no .env")
+        f.write(env_content.strip())
+    st.success("Arquivo .env criado com sucesso!")
 
-# Carregar variáveis do .env
-load_dotenv()
+# ✅ Inicializar clientes com fallback para .env
 client_openai = OpenAI(api_key=openai_key or os.getenv("OPENAI_API_KEY"))
 set_api_key(eleven_key or os.getenv("ELEVEN_API_KEY"))
 
+# 🧠 Função para gerar roteiro
 def gerar_roteiro(titulo):
     prompt = f"Crie um roteiro bíblico completo para um vídeo animado de 8 a 10 minutos com o título: '{titulo}', incluindo cenas visuais, falas e efeitos sonoros."
     resposta = client_openai.chat.completions.create(
@@ -30,51 +36,49 @@ def gerar_roteiro(titulo):
     )
     return resposta.choices[0].message.content
 
+# 🎙️ Função para gerar narração com ElevenLabs
 def gerar_narracao(roteiro):
     audio = generate(
         text=roteiro,
         voice="Rachel",
-        model="eleven_monolingual_v1",  # Pode ser removido se der erro
-        settings=VoiceSettings(
-            stability=0.5,
-            similarity_boost=0.8
-        )
+        model="eleven_monolingual_v1",
+        voice_settings=VoiceSettings(stability=0.5, similarity_boost=0.8)
     )
     filename = "narracao.mp3"
     save(audio, filename)
     return filename
 
+# 🖼️ Função para gerar imagens simuladas
 def gerar_animacoes(roteiro):
-    cenas = ["Cena 1: Josias criança", "Cena 2: Josias destruindo ídolos", "Cena 3: Josias lendo a Lei"]
+    cenas = ["Cena de Josias criança", "Josias destruindo ídolos", "Josias lendo a Lei"]
     imagens = []
     for i, cena in enumerate(cenas):
-        path = f"imagem_{i+1}.png"
-        img = requests.get(f"https://via.placeholder.com/640x360.png?text={cena.replace(' ', '+')}")
-        with open(path, "wb") as f:
-            f.write(img.content)
-        imagens.append(path)
+        image_path = f"imagem{i+1}.png"
+        url = "https://via.placeholder.com/640x360.png?text=" + cena.replace(" ", "+")
+        with open(image_path, "wb") as f:
+            f.write(requests.get(url).content)
+        imagens.append(image_path)
     return imagens
 
+# 🔊 Função para simular efeitos sonoros
 def gerar_sons(roteiro):
-    efeitos = []
-    for i in range(2):
-        path = f"efeito_{i+1}.mp3"
-        audio = requests.get("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
-        with open(path, "wb") as f:
-            f.write(audio.content)
-        efeitos.append(path)
+    efeitos = ["efeito_batalha.mp3", "efeito_templo.mp3"]
+    for efeito in efeitos:
+        with open(efeito, "wb") as f:
+            f.write(requests.get("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3").content)
     return efeitos
 
+# 🎬 Função para simular montagem do vídeo
 def montar_video(imagens, narracao, sons):
-    path = "video_final.mp4"
-    with open(path, "wb") as f:
-        f.write(b"Simulacao de video final")
-    return path
+    video_path = "video_final.mp4"
+    with open(video_path, "wb") as f:
+        f.write(b"Simulacao de video...")
+    return video_path
 
-# Interface Streamlit
-st.title("🎬 Gerador Bíblico IA")
+# 💻 Interface Streamlit
+st.title("🎬 Gerador de Vídeos Bíblicos por IA")
 
-titulo = st.text_input("Título da história bíblica")
+titulo = st.text_input("Digite o título da história bíblica:")
 
 if st.button("Gerar Vídeo"):
     with st.spinner("Gerando roteiro..."):
@@ -85,15 +89,16 @@ if st.button("Gerar Vídeo"):
         narracao = gerar_narracao(roteiro)
         st.success("Narração gerada!")
 
-    with st.spinner("Gerando imagens..."):
+    with st.spinner("Gerando animações..."):
         imagens = gerar_animacoes(roteiro)
-        st.success("Imagens geradas!")
+        st.success("Animações geradas!")
 
-    with st.spinner("Gerando sons..."):
+    with st.spinner("Gerando efeitos sonoros..."):
         sons = gerar_sons(roteiro)
-        st.success("Efeitos sonoros gerados!")
+        st.success("Sons gerados!")
 
-    with st.spinner("Montando vídeo..."):
+    with st.spinner("Montando vídeo final..."):
         video = montar_video(imagens, narracao, sons)
         st.success("Vídeo completo!")
-        st.video(video)
+
+    st.video(video)
