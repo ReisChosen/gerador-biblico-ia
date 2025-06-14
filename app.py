@@ -1,6 +1,6 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import generate, save, set_api_key
+from elevenlabs import generate, save, set_api_key, voices  # Adiciona "voices" aqui
 import os
 
 # ========================
