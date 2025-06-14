@@ -1,6 +1,6 @@
 import streamlit as st
 from openai import OpenAI
-from elevenlabs import generate, save, set_api_key, VoiceSettings
+from elevenlabs import generate, save, set_api_key
 import requests
 import os
 from dotenv import load_dotenv
@@ -33,7 +33,7 @@ def gerar_narracao(roteiro):
         text=roteiro,
         voice="Rachel",
         model="eleven_monolingual_v1",
-        voice_settings=VoiceSettings(stability=0.5, similarity_boost=0.8)
+        voice="Rachel"
     )
     filename = "narracao.mp3"
     save(audio, filename)
