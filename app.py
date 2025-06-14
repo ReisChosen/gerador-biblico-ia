@@ -33,14 +33,26 @@ def gerar_roteiro(titulo):
 # ========================
 
 def gerar_narracao(roteiro):
-    set_api_key(eleven_key)
-    audio = generate(
-        text=roteiro,
-        voice="Rachel"
-    )
-    filename = "narracao.mp3"
-    save(audio, filename)
-    return filename
+    try:
+        voices_list = voices()
+        voice = next((v for v in voices_list if v.name == "Rachel"), None)
+
+        if voice is None:
+            st.error("Voz 'Rachel' não encontrada. Verifique se a API Key do ElevenLabs está correta e ativa.")
+            return None
+
+        audio = generate(
+            text=roteiro,
+            voice=voice
+        )
+        audio_path = "narracao.mp3"
+        save(audio, audio_path)
+        return audio_path
+
+    except Exception as e:
+        st.error(f"Erro ao gerar narração: {e}")
+        return None
+
 
 # ========================
 # Interface com o usuário
